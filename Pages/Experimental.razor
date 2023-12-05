@@ -1,0 +1,188 @@
+﻿@page "/experimental"
+<main Style="Display: flex; flex-direction: column; align-items: center;">
+
+
+	<h1>WARM UP CALCULATOR</h1>
+	<p>Enter the weight, number of sets, and reps of your working set</p>
+	<section Style="display: flex; flex-direction: column; width: 80%; align-items: center;">
+
+
+		<label for="workingWeight">Working Set Weight(Lbs)</label>
+		<input type="number" @bind="userInput" min="0" max="1000" placeholder="Enter working weight" />
+		<label for="numOfSets">Sets X Reps</label>
+		<select @onchange="SetsHandleOnChange">
+			@for (int i = 1; i <= 5; i++)
+			{
+				if (i == 5)
+				{
+					<option value="@i" selected>@($"{i} X {i}")</option>
+				}
+				else
+				{
+					<option value="@i">@($"{i} X {i}")</option>
+				}
+
+
+			}
+		</select>
+		<label for="numOfReps">Reps</label>
+
+		<label for="incrementBy">Increment By(Lbs)</label>
+		<select @onchange="IncHandleOnChange">
+			@for (int i = 5; i <= 30; i += 5)
+				if (i == 20)
+				{
+					<option value="@i" selected>@i</option>
+				}
+				else
+				{
+					<option value="@i">@i</option>
+				}
+
+
+			}
+		</select>
+	</section>
+
+	<section class="btnContainer">
+		<button @onclick="ProcessWorkout">GO</button>
+		<button @onclick="resetForm">RESET</button>
+	</section>
+
+	<section id="output" Style="Display: flex; flex-direction: column; align-items: center;">
+		<h2>Do these Sets</h2>
+		@if (WarmUpsToDo.WarmUpSets != null)
+		{
+			@foreach (WarmUp set in WarmUpsToDo.WarmUpSets)
+			{
+				<div>
+					<input type="checkbox" id="@(set.RepNumber)Set">
+					<label for="@($"{set.RepNumber}Set")">@($"{set.RepNumber} X {set.SetWeight}")</label>
+				</div>
+			}
+		}
+
+
+	</section>
+	<section id="WorkingSetTracking" style="display: flex; align-items: center; flex-direction: column;">
+		<h2>Working Set Tracking</h2>
+		<div style="display: flex; align-items: center;">
+
+
+			@for (int i = 1; i <= WarmUpsToDo.WorkingSets; i++)
+			{
+				<input type="checkbox" id="@(i)Set">
+				<label for="@($"{i}Set")">@($"#{i}")</label>
+			}
+		</div>
+	</section>
+
+</main>
+@code {
+	public static int selectedValueSets { get; set; } = 5;
+	public int selectedValueReps { get; set; } = 5;
+	public int selectedValueIncrement { get; set; } = 10;
+	public static int userInput { get; set; }
+	public static int WorkingSetWeight { get; set; }
+	public static int WorkingSets { get; set; }
+	public static int WorkingSetReps { get; set; }
+	public static int WarmUpIncrement { get; set; }
+	public static WarmUpList? WarmUpsToDo { get; set; }
+	// public static string Units { get; set; }
+	private int valueFromDropDown = 0;
+
+	protected override void OnInitialized()
+	{
+		WarmUpsToDo = new WarmUpList();
+		WorkingSetReps = 5;
+		WorkingSets = 5;
+		WarmUpIncrement = 20;
+		userInput = 0;
+	}
+
+	public void ProcessWorkout()
+	{
+		GetResults();
+	}
+
+	private void resetForm()
+	{
+		// Clear the lists
+		WarmUpsToDo!.WorkingReps = 0;
+		WarmUpsToDo.WorkingSets = 0;
+		WarmUpsToDo.WorkingSetWeight = 0;
+		WarmUpsToDo.WarmUpSets = null;
+
+		// Reset the properties to their original state
+		userInput = 0;
+		selectedValueSets = 5;
+		selectedValueReps = 5;
+		selectedValueIncrement = 20;
+	}
+
+
+	public static void ParseUserInput(ChangeEventArgs args)
+	{
+		if (int.TryParse(args.Value?.ToString(), out int result))
+		{
+			WorkingSetWeight = result;
+		}
+	}
+	public static void SetsHandleOnChange(ChangeEventArgs args)
+	{
+		if (int.TryParse(args.Value?.ToString(), out int result))
+		{
+			WorkingSets = result;
+		}
+	}
+
+	public static void IncHandleOnChange(ChangeEventArgs args)
+	{
+		if (int.TryParse(args.Value?.ToString(), out int result))
+		{
+			WarmUpIncrement = result;
+		}
+
+	}
+
+	private static void GetResults()
+	{
+		WorkingSetWeight = userInput;
+		if (WorkingSetWeight > 0)
+		{
+			WarmUpsToDo.WorkingReps = WorkingSets;
+			WarmUpsToDo.WorkingSets = WorkingSets;
+			WarmUpsToDo.WorkingSetWeight = WorkingSetWeight;
+			WarmUpsToDo.Incremental = WarmUpIncrement;
+			if (WarmUpsToDo.WarmUpSets != null) WarmUpsToDo.WarmUpSets.Clear();
+			List<WarmUp> ListForWarmUps = new List<WarmUp>();
+			for (int i = 10; i > WarmUpsToDo.WorkingSets; i--)
+			{
+				WarmUp WarmUpSet = new WarmUp();
+				WarmUpSet.RepNumber = i;
+				WarmUpSet.SetNumber = i;
+				WarmUpSet.SetWeight = WarmUpsToDo.WorkingSetWeight - ((i - WarmUpsToDo.WorkingSets) * WarmUpsToDo.Incremental);
+				ListForWarmUps.Add(WarmUpSet);
+			}
+			WarmUpsToDo.WarmUpSets = ListForWarmUps;
+		}
+
+	}
+
+	public class WarmUpList
+	{
+		public List<WarmUp> WarmUpSets { get; set; }
+		public int Incremental { get; set; }
+		public int WorkingSets { get; set; }
+		public int WorkingReps { get; set; }
+		public int WorkingSetWeight { get; set; }
+
+	}
+
+	public class WarmUp
+	{
+		public int SetNumber { get; set; }
+		public int RepNumber { get; set; }
+		public int SetWeight { get; set; }
+	}
+}
