@@ -1,57 +1,61 @@
 ﻿@page "/weather"
 @inject HttpClient Http
+@using WorkoutWebAssembly.utilities;
 
-<PageTitle>Weather</PageTitle>
+<PageTitle>Weather Alerts</PageTitle>
 
-<h1>Weather</h1>
+<h1>Weather Alerts by State</h1>
 
-<p>This component demonstrates fetching data from the server.</p>
+<p>This component demonstrates fetching data from an API. API used: <a href="https://www.weather.gov/documentation/services-web-api">National Weather Service API</a></p>
+<section style="display: flex; flex-direction: row;">
+<select @bind="selectedState" class="form-control" style="width: 20%;">
+    @foreach(var state in Enum.GetValues(typeof(stateEnum)))
+    {
+        <option value="@state">@state</option>
+    }
+</select>
 
-@if (forecasts == null)
+<button class="btn btn-primary" @onclick="GetWeatherAlerts">Get Weather Alerts</button>
+</section>
+@if (alertsForState == null)
 {
-    <p><em>Loading...</em></p>
+    <p>Please select a state</p>
 }
 else
 {
+    <h3>@alertsForState.title</h3>
+    <h4>@alertsForState.updated.ToString()</h4>
     <table class="table">
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
+                <th>Counties Affected</th>
+                <th>Headline</th>
+                <th>Description</th>
+                <th>Instruction</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var forecast in forecasts)
+            @foreach (var feature in alertsForState.features)
             {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
+				<tr>
+					<td>@feature.properties.areaDesc</td>
+					<td>@feature.properties.headline</td>
+					<td>@feature.properties.description</td>
+					<td>@feature.properties.instruction</td>
+				</tr>
             }
         </tbody>
     </table>
 }
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private WeatherAlert? alertsForState;
+    private stateEnum selectedState;
 
-    protected override async Task OnInitializedAsync()
+    private async Task GetWeatherAlerts()
     {
-        forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("sample-data/weather.json");
-    }
-
-    public class WeatherForecast
-    {
-        public DateOnly Date { get; set; }
-
-        public int TemperatureC { get; set; }
-
-        public string? Summary { get; set; }
-
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        var stateCode = selectedState.ToString();
+        string apiUrl = $"https://api.weather.gov/alerts/active?area={stateCode}";
+        alertsForState = await Http.GetFromJsonAsync<WeatherAlert>(apiUrl);
     }
 }
